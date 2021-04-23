@@ -1,30 +1,49 @@
 #include "SparkMotor.h"
 
 using namespace motor;
+using namespace utilities;
 
-SparkMotor::SparkMotor(int PWMPin)
+SparkMotor::SparkMotor(int PWMPin, HardwarePWM* pwmModule)
 {
     this->PWMPin = PWMPin;
     pinMode(PWMPin, OUTPUT);
+    digitalWrite(PWMPin, LOW); 
+
+    this->pwmModule = pwmModule;   
+    pwmModule->addPin(PWMPin);
 }
 
 void SparkMotor::set(double speed)
 {
+    double output;
 
+    if(inverted)
+    {
+        output = static_cast<int>(mapDouble(speed, 1, 0, 8000, 16000));
+    }
+    else if(!inverted)
+    {
+        output = static_cast<int>(mapDouble(speed, 0, 1, 8000, 16000));
+    }
+    output = abs(output);
+    output = constrain(output, 8000, 16000);
+
+    pwmModule->writePin(PWMPin, output);
 }
 
 void SparkMotor::stopMotor()
 {
-
+    
 }
 
-void SparkMotor::setMotorDirection(bool inverted)
+void SparkMotor::invert(bool inverted)
 {
-
+    this->inverted = inverted;
 }
 
 void SparkMotor::setDeadBand(int deadBand)
 {
+    this->deadBand = deadBand;
 }
 
 int SparkMotor::getDeadBand()

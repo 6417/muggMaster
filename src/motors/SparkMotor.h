@@ -2,6 +2,9 @@
 #define SPARKMOTOR_H
 
 #include <Arduino.h>
+#include "utilities/utilities.h"
+
+// pwm highfreq pins = 22, 23
 
 namespace motor
 {
@@ -11,17 +14,19 @@ namespace motor
         int PWMPin;
         bool isInverted;
         int deadBand;
-        
+        HardwarePWM* pwmModule;
+        bool inverted = false;
+
         public:
         SparkMotor() = default;
 
-        SparkMotor(int PWMPin);
+        SparkMotor(int PWMPin, HardwarePWM* pwmModule);
 
         void set(double speed);
 
         void stopMotor();
 
-        void setMotorDirection(bool inverted);
+        void invert(bool inverted);
 
         void setDeadBand(int deadBand);
 
