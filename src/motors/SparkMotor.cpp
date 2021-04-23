@@ -3,14 +3,11 @@
 using namespace motor;
 using namespace utilities;
 
-SparkMotor::SparkMotor(int PWMPin, HardwarePWM* pwmModule)
+SparkMotor::SparkMotor(const int PWMPin, HardwarePWM* pwmModule)
 {
     this->PWMPin = PWMPin;
-    pinMode(PWMPin, OUTPUT);
-    digitalWrite(PWMPin, LOW); 
-
     this->pwmModule = pwmModule;   
-    pwmModule->addPin(PWMPin);
+    this->pwmModule->addPin(PWMPin);
 }
 
 void SparkMotor::set(double speed)
@@ -19,16 +16,17 @@ void SparkMotor::set(double speed)
 
     if(inverted)
     {
-        output = static_cast<int>(mapDouble(speed, 1, 0, 8000, 16000));
+        output = static_cast<int>(mapDouble(speed, 1, -1, 8000, 16000));
     }
     else if(!inverted)
     {
-        output = static_cast<int>(mapDouble(speed, 0, 1, 8000, 16000));
+        output = static_cast<int>(mapDouble(speed, -1, 1, 8000, 16000));
     }
     output = abs(output);
     output = constrain(output, 8000, 16000);
 
     pwmModule->writePin(PWMPin, output);
+    Serial.println(PWMPin);
 }
 
 void SparkMotor::stopMotor()

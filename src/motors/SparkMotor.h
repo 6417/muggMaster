@@ -3,12 +3,13 @@
 
 #include <Arduino.h>
 #include "utilities/utilities.h"
+#include "BaseMotor.h"
 
 // pwm highfreq pins = 22, 23
 
 namespace motor
 {
-    class SparkMotor
+    class SparkMotor : public BaseMotor
     {
         protected:
         int PWMPin;
@@ -20,17 +21,17 @@ namespace motor
         public:
         SparkMotor() = default;
 
-        SparkMotor(int PWMPin, HardwarePWM* pwmModule);
+        SparkMotor(const int PWMPin, HardwarePWM* pwmModule);
 
-        void set(double speed);
+        virtual void set(double speed) override;
 
-        void stopMotor();
+        virtual void stopMotor() override; 
 
-        void invert(bool inverted);
+        virtual void invert(bool inverted) override;
 
-        void setDeadBand(int deadBand);
+        virtual void setDeadBand(int deadBand) override;
 
-        int getDeadBand();
+        virtual int getDeadBand() override;
     };
 }
 

@@ -5,50 +5,44 @@
 #include <bluefruit.h>
 #include "utilities/utilities.h"
 #include "math.h"
+#include "motors/SparkMotor.h"
+
+using namespace motor;
 
 // motor pins
-constexpr int leftMotorEnablePin = 2;
-constexpr int leftMotorInA = 3;
-constexpr int leftMotorInB = 31;
-constexpr int rightMotorEnablePin = 20;
-constexpr int rightMotorInA = 21;
-constexpr int rightMotorInB = 22;
+constexpr int pwmMotorRight = 21;
+constexpr int pwmMotorLeft = 22;
 
 // led pins
 constexpr int LED = 23;
 
 double deadZone = 0.025;
 
-constexpr int leftMotorDeadBand = 110;
-constexpr int rightMotorDeadBand = 110;
-
 uint16_t x;
 uint16_t y;
 uint8_t buttons;
+
+volatile bool joystickUpdated = false;
 
 auto timer = timer_create_default();
 
 int ticks = 0;
 
-motor::L298N_Motor leftMotor(leftMotorEnablePin, leftMotorInA, leftMotorInB);
-motor::L298N_Motor rightMotor(rightMotorEnablePin, rightMotorInA, rightMotorInB);
+HardwarePWM pwmModule(NRF_PWM0); 
+
+
+
+SparkMotor leftMotor = SparkMotor(pwmMotorLeft, &pwmModule);
+SparkMotor rightMotor = SparkMotor(pwmMotorRight, &pwmModule);
 
 tankdrive::TankDrive driveTrain(&leftMotor, &rightMotor);
 
 BLEClientDis clientdis;
 BLEClientUart clientuart;
 
-int updateTicks(int currentTicks)
-{
-  if(currentTicks == 20)
-  {
-    return ticks++;
-  }
-}
-
 void analyzePackage(BLEClientUart &uart_service)
 {
-  while (uart_service.available())
+  while (uart_service.available() > 0)
   {
     constexpr size_t bufferSize = 8;
     uint8_t buffer[bufferSize];
@@ -56,6 +50,7 @@ void analyzePackage(BLEClientUart &uart_service)
     x = tu_ntohs(*(uint16_t *)&buffer[0]);
     y = tu_ntohs(*(uint16_t *)&buffer[2]);
     buttons = buffer[4];
+    joystickUpdated = true;
     // Serial.printf("x: %d y: %d \n", x, y, buttons);
   }
 }
@@ -65,40 +60,31 @@ double translateInput(double input)
   return pow(input, 3);
 }
 
-bool checkConnection(void *)
-{
-  if(!Bluefruit.connected())
-  {    
-    digitalWrite(LED, LOW);
-  }
-  else
-  {
-    digitalWrite(LED, HIGH);
-  }
-  return true;
-}
-
 bool driveTask(void *)
 {
   if (Bluefruit.connected())
   {
-    double calculatedX = utilities::mapDouble(static_cast<double>(x), 0, 940, -0.7, 0.7);
-    calculatedX = translateInput(calculatedX);
-    if (abs(calculatedX) < deadZone)
-    {
-      calculatedX = 0;
-    }
-    calculatedX = constrain(calculatedX, -0.5, 0.5);
+    if(joystickUpdated){
+      double calculatedX = utilities::mapDouble(static_cast<double>(x), 0, 940, -0.7, 0.7);
+      calculatedX = translateInput(calculatedX);
+      if (abs(calculatedX) < deadZone)
+      {
+        calculatedX = 0;
+      }
+      calculatedX = constrain(calculatedX, -0.5, 0.5);
 
-    double calculatedY = utilities::mapDouble(static_cast<double>(y), 0, 940, -1.0, 1.0);
-    calculatedY = translateInput(calculatedY);
-    if (abs(calculatedY) < deadZone)
-    {
-      calculatedY = 0;
-    }
-    calculatedY = constrain(calculatedY, -1, 1);
+      double calculatedY = utilities::mapDouble(static_cast<double>(y), 0, 940, -1.0, 1.0);
+      calculatedY = translateInput(calculatedY);
+      if (abs(calculatedY) < deadZone)
+      {
+        calculatedY = 0;
+      }
+      calculatedY = constrain(calculatedY, -1, 1);
 
-    driveTrain.drive(calculatedX, calculatedY);
+      driveTrain.drive(calculatedY, calculatedX);
+
+      joystickUpdated = false;
+    }
   }
   else
     driveTrain.drive(0, 0);
@@ -172,55 +158,41 @@ void setup()
 {
   Serial.begin(9600);
   delay(3000);
+
+  pwmModule.setMaxValue(20000);
+  pwmModule.setClockDiv(PWM_PRESCALER_PRESCALER_DIV_2);
+
+
   Bluefruit.begin(0, 1);
   Bluefruit.setName("Muggmaster");
+
   clientdis.begin();
   clientuart.begin();
   clientuart.setRxCallback(analyzePackage);
+
   Bluefruit.setConnLedInterval(250);
+
   Bluefruit.Central.setConnectCallback(connectCallBack);
   Bluefruit.Central.setDisconnectCallback(disconnectCallBack);
+
   Bluefruit.Scanner.setRxCallback(scanCallBack);
   Bluefruit.Scanner.restartOnDisconnect(true);
   Bluefruit.Scanner.setInterval(160, 80);
   Bluefruit.Scanner.useActiveScan(false);
   Bluefruit.Scanner.start(0);
+
+  pwmModule.addPin(pwmMotorRight);
+  pwmModule.addPin(pwmMotorLeft);
+
   timer.every(20, driveTask);
-  timer.every(20, checkConnection);
-  leftMotor.setDeadBand(leftMotorDeadBand);
-  rightMotor.setDeadBand(rightMotorDeadBand);
-  pinMode(LED, OUTPUT);
-}
-
-void bluetoothLoop()
-{
-  if (Bluefruit.Central.connected())
-  {
-    // Not discovered yet
-    if (clientuart.discovered())
-    {
-      if (Serial.available())
-      {
-        Serial.println("connected");
-        delay(2); // delay a bit for all characters to arrive
-        char str[20 + 1] = {0};
-
-        Serial.readBytes(str, 20);
-
-        clientuart.print(str);
-      }
-    }
-  }
-  else
-    Serial.println("not connected");
+  rightMotor.invert(true);
 }
 
 void loop()
 {
   timer.tick();
-  auto currentTicks = timer.tick();
-  updateTicks(currentTicks);
-  Serial.printf("ticks: %d", ticks);
-  bluetoothLoop();
-  digitalWrite(LED, LOW);
+  // pwmModule.writePin(21, 16000);
+  // delay(1000);
+  // pwmModule.writePin(21, 8000);
+  // delay(1000);
 }

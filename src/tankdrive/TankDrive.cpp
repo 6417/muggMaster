@@ -2,7 +2,7 @@
 
 using namespace tankdrive;
 
-TankDrive::TankDrive(motor::L298N_Motor* leftMotor, motor::L298N_Motor* rightMotor)
+TankDrive::TankDrive(motor::BaseMotor* leftMotor, motor::BaseMotor* rightMotor)
 {
     this->leftMotor = leftMotor;
     this->rightMotor = rightMotor;
