@@ -9,8 +9,8 @@ namespace motor
     class BaseMotor
     {
         protected:
-
-        int deadBand;
+        int lowerDeadBand;
+        int upperDeadBand;
 
         public:
         virtual void set(double speed) = 0;
@@ -19,14 +19,23 @@ namespace motor
 
         virtual void invert(bool inverted) = 0;
 
-        virtual void setDeadBand(int deadBand)
+
+        virtual void setLowerDeadBand(int deadBand)
         {
-            this->deadBand = deadBand;
+            this->lowerDeadBand = deadBand;
+        }
+        virtual void setUpperDeadBand(int deadBand)
+        {
+            this->upperDeadBand = deadBand;
         }
 
-        virtual int getDeadBand()
+        virtual int getLowerDeadBand()
         {
-            return deadBand;
+            return lowerDeadBand;
+        }
+        virtual int getUpperDeadBand()
+        {
+            return upperDeadBand;
         }
     };
 }

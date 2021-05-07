@@ -14,7 +14,8 @@ namespace motor
         protected:
         int PWMPin;
         bool isInverted;
-        int deadBand;
+        int lowerDeadBand;
+        int upperDeadBand;
         HardwarePWM* pwmModule;
         bool inverted = false;
 
@@ -23,15 +24,17 @@ namespace motor
 
         SparkMotor(const int PWMPin, HardwarePWM* pwmModule);
 
-        virtual void set(double speed) override;
+        void set(double speed) override;
 
-        virtual void stopMotor() override; 
+        void stopMotor() override; 
 
-        virtual void invert(bool inverted) override;
+        void invert(bool inverted) override;
 
-        virtual void setDeadBand(int deadBand) override;
+        void setLowerDeadBand(int deadBand) override;
+        void setUpperDeadBand(int deadBand) override;
 
-        virtual int getDeadBand() override;
+        int getLowerDeadBand() override;
+        int getUpperDeadBand() override;
     };
 }
 
