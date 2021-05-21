@@ -3,6 +3,7 @@
 using namespace motor;
 using namespace utilities;
 
+
 SparkMotor::SparkMotor(const int PWMPin, HardwarePWM* pwmModule)
 {
     this->PWMPin = PWMPin;
@@ -16,14 +17,14 @@ void SparkMotor::set(double speed)
 
     if(inverted)
     {
-        output = static_cast<int>(mapDouble(speed, 1, -1, lowerDeadBand, upperDeadBand));
+        output = static_cast<int>(mapDouble(speed, 1, -1, 8000, 16000));
     }
     else if(!inverted)
     {
-        output = static_cast<int>(mapDouble(speed, -1, 1, lowerDeadBand, upperDeadBand));
+        output = static_cast<int>(mapDouble(speed, -1, 1, 8000, 16000));
     }
     output = abs(output);
-    output = constrain(output, 8000, 16000);
+    output = constrain(output, lowerDeadBand, upperDeadBand);
 
     pwmModule->writePin(PWMPin, output);
     // Serial.println(PWMPin);
@@ -42,11 +43,11 @@ void SparkMotor::invert(bool inverted)
 
 void SparkMotor::setLowerDeadBand(int deadBand)
 {
-    this->lowerDeadBand = deadBand;
+    this->lowerDeadBand = lowerDeadBand;
 }
 int SparkMotor::getLowerDeadBand()
 {
-    return deadBand;
+    return lowerDeadBand;
 }
 
 void SparkMotor::setUpperDeadBand(int deadBand)
