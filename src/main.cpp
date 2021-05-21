@@ -9,6 +9,14 @@
 
 using namespace motor;
 
+#define SPARKMOTOR_LOWER_DEADBAND_RIGHT 10000
+#define SPARKMOTOR_UPPER_DEADBAND_RIGHT 14000
+
+#define SPARKMOTOR_LOWER_DEADBAND_LEFT 10000
+#define SPARKMOTOR_UPPER_DEADBAND_LEFT 14000
+
+// leftMotor is driving to fast
+
 // motor pins
 constexpr int pwmMotorRight = 21;
 constexpr int pwmMotorLeft = 22;
@@ -30,8 +38,6 @@ int ticks = 0;
 
 HardwarePWM pwmModule(NRF_PWM0); 
 
-
-
 SparkMotor leftMotor = SparkMotor(pwmMotorLeft, &pwmModule);
 SparkMotor rightMotor = SparkMotor(pwmMotorRight, &pwmModule);
 
@@ -51,7 +57,6 @@ void analyzePackage(BLEClientUart &uart_service)
     y = tu_ntohs(*(uint16_t *)&buffer[2]);
     buttons = buffer[4];
     joystickUpdated = true;
-    // Serial.printf("x: %d y: %d \n", x, y, buttons);
   }
 }
 
@@ -65,15 +70,15 @@ bool driveTask(void *)
   if (Bluefruit.connected())
   {
     if(joystickUpdated){
-      double calculatedX = utilities::mapDouble(static_cast<double>(x), 0, 940, -0.7, 0.7);
-      calculatedX = translateInput(calculatedX);
+      double calculatedX = utilities::mapDouble(static_cast<double>(x), 0, 940, -0.8, 0.8);
+      calculatedX = translateInput(calculatedX); 
       if (abs(calculatedX) < deadZone)
       {
         calculatedX = 0;
       }
       calculatedX = constrain(calculatedX, -0.5, 0.5);
 
-      double calculatedY = utilities::mapDouble(static_cast<double>(y), 0, 940, -1.0, 1.0);
+      double calculatedY = utilities::mapDouble(static_cast<double>(y), 0, 940, -0.8, 0.8);
       calculatedY = translateInput(calculatedY);
       if (abs(calculatedY) < deadZone)
       {
@@ -81,7 +86,7 @@ bool driveTask(void *)
       }
       calculatedY = constrain(calculatedY, -1, 1);
 
-      driveTrain.drive(calculatedY, calculatedX);
+      driveTrain.drive(-calculatedY, -calculatedX);
 
       joystickUpdated = false;
     }
@@ -185,14 +190,17 @@ void setup()
   pwmModule.addPin(pwmMotorLeft);
 
   timer.every(20, driveTask);
+
+  leftMotor.setLowerDeadBand(SPARKMOTOR_LOWER_DEADBAND_LEFT);
+  leftMotor.setUpperDeadBand(SPARKMOTOR_UPPER_DEADBAND_LEFT);
+  rightMotor.setLowerDeadBand(SPARKMOTOR_LOWER_DEADBAND_RIGHT);
+  rightMotor.setUpperDeadBand(SPARKMOTOR_UPPER_DEADBAND_RIGHT);
+
   rightMotor.invert(true);
+  leftMotor.invert(true);
 }
 
 void loop()
 {
   timer.tick();
-  // pwmModule.writePin(21, 16000);
-  // delay(1000);
-  // pwmModule.writePin(21, 8000);
-  // delay(1000);
 }
