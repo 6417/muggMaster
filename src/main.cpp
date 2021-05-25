@@ -86,7 +86,7 @@ bool driveTask(void *)
       }
       calculatedY = constrain(calculatedY, -1, 1);
 
-      driveTrain.drive(-calculatedY, -calculatedX);
+      driveTrain.drive(calculatedY, -calculatedX);
 
       joystickUpdated = false;
     }
@@ -164,10 +164,7 @@ void setup()
   Serial.begin(9600);
   delay(3000);
 
-  pwmModule.setMaxValue(20000);
-  pwmModule.setClockDiv(PWM_PRESCALER_PRESCALER_DIV_2);
-
-
+  // config bluetoothModule
   Bluefruit.begin(0, 1);
   Bluefruit.setName("Muggmaster");
 
@@ -186,21 +183,33 @@ void setup()
   Bluefruit.Scanner.useActiveScan(false);
   Bluefruit.Scanner.start(0);
 
+  // initialize PWM pins
+  pwmModule.setMaxValue(20000);
+  pwmModule.setClockDiv(PWM_PRESCALER_PRESCALER_DIV_2);
+
+  // config PWM pins
   pwmModule.addPin(pwmMotorRight);
   pwmModule.addPin(pwmMotorLeft);
 
   timer.every(20, driveTask);
 
+  // initialize motors
   leftMotor.setLowerDeadBand(SPARKMOTOR_LOWER_DEADBAND_LEFT);
   leftMotor.setUpperDeadBand(SPARKMOTOR_UPPER_DEADBAND_LEFT);
   rightMotor.setLowerDeadBand(SPARKMOTOR_LOWER_DEADBAND_RIGHT);
   rightMotor.setUpperDeadBand(SPARKMOTOR_UPPER_DEADBAND_RIGHT);
-
+  
   rightMotor.invert(true);
   leftMotor.invert(true);
+
+  NRF_WDT -> CONFIG      = 0x01;
+  NRF_WDT -> CRV         = 163839;
+  NRF_WDT -> RREN        = 0x01;
+  NRF_WDT -> TASKS_START = 1;
 }
 
 void loop()
 {
   timer.tick();
+  NRF_WDT->RR[0] = WDT_RR_RR_Reload;
 }
